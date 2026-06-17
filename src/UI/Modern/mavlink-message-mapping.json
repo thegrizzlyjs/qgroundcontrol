@@ -1,0 +1,167 @@
+{
+  "version": "1.0.0",
+  "description": "MAVLink message mapping for Modern UI components",
+  "messageBindings": {
+    "HEARTBEAT": {
+      "component": "ModernStatusBar",
+      "bindings": {
+        "system_status": "vehicle.systemStatus",
+        "armed": "vehicle.armed",
+        "flight_mode": "vehicle.flightMode"
+      }
+    },
+    "SYSTEM_TIME": {
+      "component": "ModernStatusBar",
+      "bindings": {
+        "time_unix_usec": "vehicle.systemTime"
+      }
+    },
+    "GPS_RAW_INT": {
+      "component": "ModernLayout, ModernStatusBar, ModernRightPanel",
+      "bindings": {
+        "lat": "vehicle.latitude",
+        "lon": "vehicle.longitude",
+        "alt": "vehicle.altitude",
+        "fix_type": "vehicle.gps.fixType",
+        "satellites_visible": "vehicle.gps.satelliteCount"
+      }
+    },
+    "BATTERY_STATUS": {
+      "component": "ModernStatusBar, ModernRightPanel",
+      "bindings": {
+        "voltage_cell_1": "vehicle.battery.voltage",
+        "battery_remaining": "vehicle.battery.capacity",
+        "current_battery": "vehicle.battery.current",
+        "charge_state": "vehicle.battery.chargeState"
+      }
+    },
+    "ATTITUDE": {
+      "component": "ModernHUDPanel",
+      "bindings": {
+        "roll": "vehicle.roll",
+        "pitch": "vehicle.pitch",
+        "yaw": "vehicle.yaw"
+      }
+    },
+    "GLOBAL_POSITION_INT": {
+      "component": "ModernLayout, ModernRightPanel",
+      "bindings": {
+        "lat": "vehicle.latitude",
+        "lon": "vehicle.longitude",
+        "alt": "vehicle.altitude",
+        "relative_alt": "vehicle.altitudeRelative"
+      }
+    },
+    "MISSION_ITEM_REACHED": {
+      "component": "ModernWaypointEditor, ModernStatusBar",
+      "bindings": {
+        "seq": "mission.currentWaypointIndex"
+      }
+    },
+    "MISSION_ACK": {
+      "component": "ModernMissionValidator",
+      "bindings": {
+        "type": "mission.ackType",
+        "mission_type": "mission.type"
+      }
+    },
+    "STATUSTEXT": {
+      "component": "ModernLayout (notification)",
+      "bindings": {
+        "text": "notifications.message",
+        "severity": "notifications.severity"
+      }
+    },
+    "RC_CHANNELS": {
+      "component": "ModernRightPanel (advanced)",
+      "bindings": {
+        "chan1_raw": "rc.channel1",
+        "chan2_raw": "rc.channel2",
+        "chan3_raw": "rc.channel3",
+        "chan4_raw": "rc.channel4"
+      }
+    }
+  },
+  "vehicleStateMapping": {
+    "telemetryLinkActive": {
+      "source": "HEARTBEAT.heartbeat_timeout",
+      "updateInterval": 1000,
+      "displayIn": ["ModernStatusBar", "ModernRightPanel"]
+    },
+    "mavlinkLatency": {
+      "source": "Vehicle.mavlinkSilenceMs",
+      "updateInterval": 500,
+      "displayIn": ["ModernStatusBar"]
+    },
+    "flightMode": {
+      "source": "HEARTBEAT.custom_mode + Vehicle.baseMode",
+      "updateInterval": 100,
+      "displayIn": ["ModernStatusBar", "ModernRightPanel"]
+    },
+    "armingState": {
+      "source": "HEARTBEAT.base_mode (0x80 = armed)",
+      "updateInterval": 100,
+      "displayIn": ["ModernFAB", "ModernStatusBar"]
+    },
+    "missionProgress": {
+      "source": "MISSION_ITEM_REACHED.seq",
+      "updateInterval": 1000,
+      "displayIn": ["ModernWaypointEditor", "ModernStatusBar"]
+    },
+    "gpsStatus": {
+      "source": "GPS_RAW_INT.fix_type",
+      "updateInterval": 1000,
+      "displayIn": ["ModernStatusBar", "ModernRightPanel"]
+    },
+    "batteryStatus": {
+      "source": "BATTERY_STATUS",
+      "updateInterval": 2000,
+      "displayIn": ["ModernStatusBar", "ModernRightPanel"]
+    }
+  },
+  "commandBindings": {
+    "ARM_DISARM": {
+      "uiElement": "ModernFAB.armClicked()",
+      "mavlinkCommand": "MAV_CMD_COMPONENT_ARM_DISARM",
+      "params": ["param1: 1 (arm) / 0 (disarm)"]
+    },
+    "MISSION_START": {
+      "uiElement": "ModernFAB.startClicked()",
+      "mavlinkCommand": "MAV_CMD_MISSION_START",
+      "params": []
+    },
+    "MISSION_PAUSE": {
+      "uiElement": "ModernStatusBar context menu",
+      "mavlinkCommand": "MAV_CMD_OVERRIDE_GOTO",
+      "params": []
+    },
+    "WAYPOINT_ADD": {
+      "uiElement": "ModernWaypointEditor.addWaypoint()",
+      "mavlinkCommand": "MISSION_ITEM_INT",
+      "params": ["seq, frame, command, current, autocontinue, x, y, z"]
+    },
+    "WAYPOINT_DELETE": {
+      "uiElement": "ModernWaypointEditor.deleteWaypoint()",
+      "mavlinkCommand": "MISSION_CLEAR_ALL",
+      "params": []
+    }
+  },
+  "implementationNotes": {
+    "priority": [
+      "Ensure HEARTBEAT processing for system state updates",
+      "GPS_RAW_INT and GLOBAL_POSITION_INT for position display",
+      "BATTERY_STATUS for battery monitoring",
+      "MISSION_ITEM_REACHED for progress tracking"
+    ],
+    "customMessages": [
+      "Use standard MAVLink message types where possible",
+      "Custom fields stored in param_float extension if needed",
+      "Avoid creating custom message types"
+    ],
+    "updateStrategy": {
+      "highPriority": "HEARTBEAT (1Hz), ATTITUDE (10Hz)",
+      "mediumPriority": "GPS_RAW_INT (5Hz), BATTERY_STATUS (1Hz)",
+      "lowPriority": "STATUSTEXT (on_event), RC_CHANNELS (5Hz if armed)"
+    }
+  }
+}
